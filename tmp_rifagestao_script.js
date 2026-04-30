@@ -51,6 +51,7 @@ const emptyMainRaffle = (type) => ({
   createdAt: new Date().toISOString(),
   finishedAt: null,
   numeroRifa: "",
+  numWinners: 3,
   header: defaultHeader,
   numbers: Array.from({length:25},(_,i)=>({number:i+1,animal:animals[i][1],emoji:animals[i][0],buyer:"",paid:false})),
   values:{oneQuota:178,twoQuotaPromo:320},
@@ -230,6 +231,12 @@ function renderMainRaffle(){
     ${summaryCardsHtml()}
     <label>Número da rifa</label>
     <input placeholder="Ex: 292" value="${escapeAttr(r.numeroRifa||'')}" oninput="updateNumeroRifa(this.value)">
+    <label>Número de vencedores</label>
+    <select onchange="updateNumWinners(this.value)">
+      <option value="1" ${r.numWinners==1?'selected':''}>1 vencedor</option>
+      <option value="2" ${r.numWinners==2?'selected':''}>2 vencedores</option>
+      <option value="3" ${r.numWinners==3?'selected':''}>3 vencedores</option>
+    </select>
     <label>Cabeçalho editável <span style="font-weight:400;color:var(--txt-dim);font-size:10px;text-transform:none">use {{numeroRifa}} para inserir o número acima</span></label>
     <textarea oninput="updateHeader(this.value)">${escapeHtml(r.header)}</textarea>
     <div class="actions">
@@ -376,6 +383,7 @@ function updateField(k,v){ active()[k]=v; markDirty(); logAction("Atualização"
 function updateSavedBadgeOnly(){ const old=document.querySelector('#main .saved-status'); if(old) old.outerHTML=savedStatusHtml(active()); }
 function updateWinnerButtonOnly(){ const b=document.getElementById('btnWinnersMain'); if(b) b.disabled = countFilled() < 20; }
 function updateNumeroRifa(v){ active().numeroRifa=v; markDirty(); logAction("Atualização","Número da rifa alterado para: "+v); localStorage.setItem("rifas_whatsapp_app_v1",JSON.stringify(state)); document.getElementById("preview").textContent=generateMessage(); }
+function updateNumWinners(v){ active().numWinners=Number(v); markDirty(); logAction("Atualização","Número de vencedores alterado para: "+v); localStorage.setItem("rifas_whatsapp_app_v1",JSON.stringify(state)); }
 function updateNumeroRifaReferencia(v){ active().numeroRifaReferencia=v; markDirty(); logAction("Atualização","Número da rifa de referência alterado para: "+v); localStorage.setItem("rifas_whatsapp_app_v1",JSON.stringify(state)); }
 function countFilled(){ return active().numbers.filter(n=>n.buyer.trim()).length; }
 function ensureRifaDaRifaCount(){ if(current!=="rifaDaRifa") return; changeRifaDaRifaCount(active().quantidadeNumeros, false); }
@@ -460,12 +468,15 @@ async function copyValues(){
 function showWinners(){
   const max = active().numbers.length;
   const wn = active().winnerNumbers || {w1:"",w2:"",w3:""};
+  const numWinners = active().numWinners || 3;
+  const fields = [];
+  for(let i=1; i<=numWinners; i++){
+    fields.push(`<div><label>${i}º sorteado</label><input id="w${i}" type="number" min="1" max="${max}" value="${wn['w'+i]||''}"></div>`);
+  }
   openModal("Ganhadores", `
     <p class="small" style="margin-bottom:14px">Informe os números sorteados. Se o 1º não tiver comprador, o sistema gera a mensagem correta automaticamente.</p>
     <div class="two">
-      <div><label>1º sorteado</label><input id="w1" type="number" min="1" max="${max}" value="${wn.w1||''}"></div>
-      <div><label>2º sorteado</label><input id="w2" type="number" min="1" max="${max}" value="${wn.w2||''}"></div>
-      <div><label>3º sorteado</label><input id="w3" type="number" min="1" max="${max}" value="${wn.w3||''}"></div>
+      ${fields.join('')}
     </div>
     <div class="actions"><button class="green" onclick="calculateWinners()">🏆 Gerar resultado</button></div>
     <div id="winnerResult" class="message-box" style="margin-top:14px;display:none"></div>
@@ -477,13 +488,16 @@ function showWinners(){
 }
 function calculateWinners(){
   const r = active();
-  const w1val = document.getElementById("w1").value;
-  const w2val = document.getElementById("w2").value;
-  const w3val = document.getElementById("w3").value;
+  const numWinners = r.numWinners || 3;
+  const winnerVals = {};
+  const inputNums = [];
+  for(let i=1; i<=numWinners; i++){
+    const val = document.getElementById("w"+i)?.value || "";
+    winnerVals["w"+i] = val;
+    if(val) inputNums.push(Number(val));
+  }
   // save the entered numbers
-  r.winnerNumbers = {w1: w1val, w2: w2val, w3: w3val};
-
-  const inputNums = [w1val,w2val,w3val].map(v=>Number(v)).filter(Boolean);
+  r.winnerNumbers = winnerVals;
   const vacant = r.numbers.some(n=>!n.buyer.trim());
   const totalNums = r.numbers.length;
   const vagosCount = r.numbers.filter(n=>!n.buyer.trim()).length;
