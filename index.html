@@ -64,6 +64,7 @@
       color: var(--txt);
       min-height: 100vh;
       -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
     }
 
     /* Background noise texture */
@@ -75,6 +76,7 @@
       pointer-events: none;
       z-index: 0;
       opacity: 0.6;
+      touch-action: pan-y;
     }
 
     /* Ambient glow */
@@ -89,6 +91,7 @@
       background: radial-gradient(ellipse, var(--ambient-glow) 0%, transparent 70%);
       pointer-events: none;
       z-index: 0;
+      touch-action: pan-y;
     }
 
     .app {
@@ -172,6 +175,7 @@
       background: transparent;
       transition: background 0.3s ease;
       z-index: 0;
+      touch-action: pan-y;
     }
     body.orange-alert .alert-overlay { background: rgba(255,140,0,0.12); }
     body.red-alert .alert-overlay { background: rgba(255,34,34,0.14); }
