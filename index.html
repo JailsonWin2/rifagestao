@@ -30,7 +30,32 @@
       --radius: 14px;
       --radius-sm: 8px;
       --radius-xs: 6px;
+      --ambient-glow: rgba(255,77,28,0.06);
     }
+
+    /* Temas */
+    body.vip {
+      --bg: #0a1a0a;
+      --surface: #1a2a1a;
+      --surface2: #2a3a2a;
+      --surface3: #3a4a3a;
+      --accent: #00e096;
+      --accent-glow: rgba(0,224,150,0.25);
+      --accent-dim: rgba(0,224,150,0.12);
+      --ambient-glow: rgba(0,224,150,0.06);
+    }
+
+    body.premium {
+      --bg: #1a0a0a;
+      --surface: #2a1a1a;
+      --surface2: #3a2a2a;
+      --surface3: #4a3a3a;
+      --accent: #ff4466;
+      --accent-glow: rgba(255,68,102,0.25);
+      --accent-dim: rgba(255,68,102,0.12);
+      --ambient-glow: rgba(255,68,102,0.06);
+    }
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
@@ -61,7 +86,7 @@
       transform: translateX(-50%);
       width: 900px;
       height: 500px;
-      background: radial-gradient(ellipse, rgba(255,77,28,0.06) 0%, transparent 70%);
+      background: radial-gradient(ellipse, var(--ambient-glow) 0%, transparent 70%);
       pointer-events: none;
       z-index: 0;
     }
@@ -123,6 +148,33 @@
       flex-wrap: wrap;
       margin-left: auto;
     }
+
+    .top-clock {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 110px;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      background: rgba(255,255,255,0.06);
+      color: var(--txt);
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid rgba(255,255,255,0.08);
+      letter-spacing: 0.2px;
+    }
+
+    .alert-overlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background: transparent;
+      transition: background 0.3s ease;
+      z-index: 0;
+    }
+    body.orange-alert .alert-overlay { background: rgba(255,140,0,0.12); }
+    body.red-alert .alert-overlay { background: rgba(255,34,34,0.14); }
+    body.blue-alert .alert-overlay { background: rgba(72,132,255,0.16); }
 
     /* ── BUTTONS ── */
     button {
@@ -608,6 +660,7 @@
   </style>
 </head>
 <body>
+<div class="alert-overlay" id="alertOverlay"></div>
 <div class="app">
   <div class="top">
     <div class="top-inner">
@@ -623,6 +676,7 @@
         <button class="yellow" onclick="exportJSON()">↓ Export</button>
         <button class="red" onclick="resetCurrent()">Limpar</button>
       </div>
+      <div class="top-clock" id="topClock">00:00:00</div>
     </div>
   </div>
 
@@ -758,6 +812,33 @@ function loadState(){
 }
 function persist(){ localStorage.setItem("rifas_whatsapp_app_v1", JSON.stringify(state)); render(); }
 function active(){ return state[current]; }
+function updateClock(){
+  const now = new Date();
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  document.getElementById('topClock').textContent = `${hours}:${minutes}:${seconds}`;
+  updateAlertState(now);
+}
+function updateAlertState(now){
+  const targets = [
+    {startHour:9, startMinute:0, endHour:9, endMinute:20},
+    {startHour:11, startMinute:0, endHour:11, endMinute:20}
+  ];
+  const millis = now.getTime();
+  let state = '';
+  for(const target of targets){
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), target.startHour, target.startMinute, 0, 0).getTime();
+    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), target.endHour, target.endMinute, 0, 0).getTime();
+    const orangeStart = start - (25 * 60 * 1000);
+    const redStart = start - (20 * 60 * 1000);
+    if(millis >= start && millis < end){ state = 'blue-alert'; break; }
+    if(millis >= redStart && millis < start){ state = 'red-alert'; break; }
+    if(millis >= orangeStart && millis < redStart){ state = 'orange-alert'; break; }
+  }
+  document.body.classList.remove('orange-alert','red-alert','blue-alert');
+  if(state) document.body.classList.add(state);
+}
 function toast(msg){
   const el=document.getElementById("toast");
   el.textContent=msg;
@@ -783,7 +864,11 @@ function bulkPayControlHtml(){
     <label class="switch"><input type="checkbox" ${checked} onchange="togglePayWholeBuyer(this.checked)"><span class="slider"></span></label>
   </div>`;
 }
-function setTab(tab){ current=tab; render(); }
+function setTab(tab){ 
+  current=tab; 
+  document.body.className = tab === 'vip2' ? 'vip' : tab === 'premium' ? 'premium' : '';
+  render(); 
+}
 function closeModal(){ document.getElementById("modal").close(); }
 function openModal(title, body, options = {}){
   document.getElementById("modalTitle").textContent=title;
@@ -1340,6 +1425,8 @@ function resetCurrent(){
 function money(v){ return Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function escapeHtml(s){ return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m])); }
 function escapeAttr(s){ return escapeHtml(s).replaceAll("\n"," "); }
+updateClock();
+setInterval(updateClock, 1000);
 render();
 </script>
 </body>

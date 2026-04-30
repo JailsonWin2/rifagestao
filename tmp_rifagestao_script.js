@@ -127,7 +127,11 @@ function bulkPayControlHtml(){
     <label class="switch"><input type="checkbox" ${checked} onchange="togglePayWholeBuyer(this.checked)"><span class="slider"></span></label>
   </div>`;
 }
-function setTab(tab){ current=tab; render(); }
+function setTab(tab){ 
+  current=tab; 
+  document.body.className = tab === 'vip2' ? 'vip' : tab === 'premium' ? 'premium' : '';
+  render(); 
+}
 function closeModal(){ document.getElementById("modal").close(); }
 function openModal(title, body, options = {}){
   document.getElementById("modalTitle").textContent=title;
