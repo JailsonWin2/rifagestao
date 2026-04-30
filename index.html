@@ -683,6 +683,7 @@
 </head>
 <body>
 <div class="alert-overlay" id="alertOverlay"></div>
+<input id="importFileInput" type="file" accept="application/json" style="display:none" onchange="handleImportFile(event)">
 <div class="app">
   <div class="top">
     <div class="top-inner">
@@ -695,6 +696,7 @@
         <button id="tab-rifaDaRifa" onclick="setTab('rifaDaRifa')">Rifa da Rifa</button>
         <button id="tab-vip2" onclick="setTab('vip2')">VIP 2</button>
         <button onclick="showSavedRaffles()">📁 Histórico</button>
+        <button class="yellow" onclick="triggerImportJSON()">↑ Importar</button>
         <button class="yellow" onclick="exportJSON()">↓ Export</button>
         <button class="red" onclick="resetCurrent()">Limpar</button>
       </div>
@@ -1387,12 +1389,27 @@ function showSavedRaffleDetails(idx){
   const numLabel = r.type==='rifaDaRifa' ? `Rifa de referência: <strong>${escapeHtml(r.numeroRifaReferencia||'—')}</strong>` : `Número da rifa: <strong>${escapeHtml(r.numeroRifa||'—')}</strong>`;
   openModal('Detalhes da rifa salva', `
     <p style="margin-bottom:12px"><span class="pill">${labelType(r.type)}</span> &nbsp; <span class="small">Salva em ${new Date(r.savedAt||r.createdAt).toLocaleString('pt-BR')}</span> &nbsp; <span class="small">${numLabel}</span></p>
+    <div class="actions" style="margin-bottom:18px"><button class="green" onclick="reopenSavedRaffle(${idx})">🔄 Reabrir para editar</button><button onclick="closeModal()">Fechar</button></div>
     <h3>Template / Cabeçalho</h3><div class="message-box">${escapeHtml(r.header||'')}</div>
     <h3>Ganhadores</h3><div class="message-box">${winners}</div>
     <h3>Valores</h3>${valuesHtml}
-    <h3>Mensagem final</h3><div class="message-box">${escapeHtml(r.finalMessage||'')}</div>
+    <h3>Mensagem final</h3><div class="message-box">${escapeHtml(r.finalMessage||'Sem resultado salvo')}</div>
     <h3>Histórico</h3>${(r.history||[]).length ? `<table><thead><tr><th>Data</th><th>Hora</th><th>Ação</th><th>Detalhe</th></tr></thead><tbody>${(r.history||[]).map(x=>`<tr><td>${x.date}</td><td>${x.time}</td><td>${escapeHtml(x.type)}</td><td>${escapeHtml(x.detail||'')}</td></tr>`).join('')}</tbody></table>` : '<p class="small">Sem histórico.</p>'}
   `);
+}
+function reopenSavedRaffle(idx){
+  const r=(state.savedRaffles||[])[idx]; if(!r) return;
+  if(active().hasUnsavedChanges && !confirm('Você tem alterações não salvas na aba atual. Deseja descartá-las e abrir esta rifa salva?')) return;
+  const savedCopy = JSON.parse(JSON.stringify(r));
+  delete savedCopy.savedAt;
+  savedCopy.lastSavedAt = r.savedAt || r.lastSavedAt || new Date().toISOString();
+  savedCopy.hasUnsavedChanges = false;
+  state[r.type] = savedCopy;
+  current = r.type;
+  document.body.className = current === 'vip2' ? 'vip' : current === 'premium' ? 'premium' : '';
+  closeModal();
+  render();
+  toast('Rifa reaberta para edição ✅');
 }
 function labelType(t){ return t==='premium'?'Premium':t==='vip2'?'VIP 2':'Rifa da Rifa'; }
 function renderValuesTableForRaffle(r){
@@ -1423,6 +1440,71 @@ function saveRaffle(){
 function exportJSON(){
   const blob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
   const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="rifas-backup.json"; a.click(); URL.revokeObjectURL(a.href);
+}
+function mergeSavedRaffles(currentSaved = [], importedSaved = []){
+  const map = new Map();
+  currentSaved.forEach(item => { if(item && item.id) map.set(item.id, item); });
+  importedSaved.forEach(item => {
+    if(!item || !item.id) return;
+    const existing = map.get(item.id);
+    if(!existing) {
+      map.set(item.id, item);
+      return;
+    }
+    const existingTime = existing.savedAt ? new Date(existing.savedAt).getTime() : 0;
+    const importedTime = item.savedAt ? new Date(item.savedAt).getTime() : 0;
+    if(importedTime > existingTime) map.set(item.id, item);
+  });
+  return Array.from(map.values()).sort((a,b) => {
+    const aTime = new Date(a.savedAt || a.createdAt || 0).getTime();
+    const bTime = new Date(b.savedAt || b.createdAt || 0).getTime();
+    return bTime - aTime;
+  });
+}
+function mergeRaffleState(current, imported){
+  const next = {...current};
+  next.savedRaffles = mergeSavedRaffles(current.savedRaffles || [], imported.savedRaffles || []);
+  ["premium","vip2","rifaDaRifa"].forEach(key => {
+    if(!imported[key] || typeof imported[key] !== "object") return;
+    const currentItem = current[key] || {};
+    if(currentItem.hasUnsavedChanges) return;
+    const currentTime = currentItem.lastSavedAt ? new Date(currentItem.lastSavedAt).getTime() : 0;
+    const importedTime = imported[key].lastSavedAt ? new Date(imported[key].lastSavedAt).getTime() : 0;
+    if(importedTime > currentTime) next[key] = imported[key];
+  });
+  return next;
+}
+function triggerImportJSON(){
+  const input = document.getElementById("importFileInput");
+  if(input){ input.value = ""; input.click(); }
+}
+function handleImportFile(event){
+  const file = event.target.files?.[0];
+  if(!file){ return; }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if(!imported || typeof imported !== "object") throw new Error("Arquivo JSON inválido");
+      const previousCount = (state.savedRaffles || []).length;
+      state = mergeRaffleState(state, imported);
+      localStorage.setItem("rifas_whatsapp_app_v1", JSON.stringify(state));
+      render();
+      const newCount = (state.savedRaffles || []).length;
+      if(newCount > previousCount) {
+        toast(`Importação concluída ✅ ${newCount - previousCount} novo(s) registro(s) adicionados`);
+      } else {
+        toast("Importação concluída ✅ Nenhum registro novo encontrado");
+      }
+    } catch (err) {
+      console.error(err);
+      toast("Erro ao importar: arquivo inválido");
+    }
+  };
+  reader.onerror = () => {
+    toast("Erro ao ler o arquivo");
+  };
+  reader.readAsText(file);
 }
 function getLastSavedRaffleByType(type){
   return (state.savedRaffles||[]).find(r=>r.type===type) || null;
