@@ -90,6 +90,35 @@ const emptyRifaDaRifa = () => ({
 
 let state = loadState();
 let current = "premium";
+let settings = loadSettings();
+
+function loadSettings(){
+  const saved = localStorage.getItem("rifas_settings_v1");
+  if(saved) return JSON.parse(saved);
+  return {showClock: true, autoCopyOnChange: false};
+}
+function saveSettings(){
+  localStorage.setItem("rifas_settings_v1", JSON.stringify(settings));
+}
+function updateSetting(key, value){
+  settings[key] = value;
+  saveSettings();
+  applySettings();
+}
+function applySettings(){
+  const clock = document.getElementById("topClock");
+  if(clock) clock.style.display = settings.showClock ? "inline-flex" : "none";
+}
+async function autoCopyIfEnabled(){
+  if(!settings.autoCopyOnChange) return;
+  try {
+    const msg = generateMessage();
+    await navigator.clipboard.writeText(msg);
+    toast("📋 Copiado");
+  } catch(e) {
+    console.error("Auto-copy falhou:", e);
+  }
+}
 
 function loadState(){
   const saved = localStorage.getItem("rifas_whatsapp_app_v1");
@@ -303,7 +332,7 @@ function renderRifaDaRifa(){
 }
 
 function updateHeader(v){ active().header=v; markDirty(); logAction("Atualização","Cabeçalho alterado"); localStorage.setItem("rifas_whatsapp_app_v1", JSON.stringify(state)); document.getElementById("preview").textContent=generateMessage(); updateSavedBadgeOnly(); }
-function updateBuyer(i,v){ active().numbers[i].buyer=v; markDirty(); localStorage.setItem("rifas_whatsapp_app_v1", JSON.stringify(state)); document.getElementById("preview").textContent=generateMessage(); updateSavedBadgeOnly(); updateWinnerButtonOnly(); }
+function updateBuyer(i,v){ active().numbers[i].buyer=v; markDirty(); localStorage.setItem("rifas_whatsapp_app_v1", JSON.stringify(state)); document.getElementById("preview").textContent=generateMessage(); updateSavedBadgeOnly(); updateWinnerButtonOnly(); autoCopyIfEnabled(); }
 
 function onBuyerFocus(i,input){ input.dataset.originalBuyer = input.value || ""; showBuyerSuggestions(i, input); }
 function finalizeBuyer(i,input){ const original = input.dataset.originalBuyer || ""; const current = input.value || ""; if(original !== current){ logAction("Atualização", `Número ${i+1}: comprador alterado de "${original}" para "${current}"`); localStorage.setItem("rifas_whatsapp_app_v1", JSON.stringify(state)); } }
@@ -378,7 +407,7 @@ function confirmBulkPay(encodedBuyer){
   markDirty(); logAction("Pagamento", `Comprador ${buyer}: números ${changed.join(", ")} marcados como pagos`);
   closeModal(); persist(); toast("Comprador marcado como pago ✅");
 }
-function updatePaid(i,v){ active().numbers[i].paid=v; markDirty(); logAction("Pagamento",`Número ${i+1}: marcado como ${v?"pago":"pendente"}`); persist(); }
+function updatePaid(i,v){ active().numbers[i].paid=v; markDirty(); logAction("Pagamento",`Número ${i+1}: marcado como ${v?"pago":"pendente"}`); persist(); autoCopyIfEnabled(); }
 function updateField(k,v){ active()[k]=v; markDirty(); logAction("Atualização",`${k} alterado`); persist(); }
 function updateSavedBadgeOnly(){ const old=document.querySelector('#main .saved-status'); if(old) old.outerHTML=savedStatusHtml(active()); }
 function updateWinnerButtonOnly(){ const b=document.getElementById('btnWinnersMain'); if(b) b.disabled = countFilled() < 20; }
@@ -589,6 +618,33 @@ function calculateWinners(){
 function showHistory(){
   const h=active().history;
   openModal("Histórico da rifa atual", h.length ? `<table><thead><tr><th>Data</th><th>Hora</th><th>Ação</th><th>Detalhe</th></tr></thead><tbody>${h.map(x=>`<tr><td>${x.date}</td><td>${x.time}</td><td>${escapeHtml(x.type)}</td><td>${escapeHtml(x.detail||"")}</td></tr>`).join("")}</tbody></table>` : `<p class="small">Sem histórico ainda.</p>`);
+}
+function showSettings(){
+  const body = `
+    <h3 style="margin: 0 0 14px 0;">Visibilidade</h3>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+      <label class="switch">
+        <input type="checkbox" ${settings.showClock?"checked":""} onchange="updateSetting('showClock',this.checked)">
+        <span class="slider"></span>
+      </label>
+      <span style="font-size:13px;color:var(--txt-muted);">Mostrar relógio</span>
+    </div>
+    <h3 style="margin: 16px 0 14px 0;">Automação</h3>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+      <label class="switch">
+        <input type="checkbox" ${settings.autoCopyOnChange?"checked":""} onchange="updateSetting('autoCopyOnChange',this.checked)">
+        <span class="slider"></span>
+      </label>
+      <span style="font-size:13px;color:var(--txt-muted);">Copiar automaticamente ao alterar nome ou pagamento</span>
+    </div>
+    <p class="small" style="color:var(--txt-dim);margin-bottom:12px;">Quando ativado, a mensagem será copiada automaticamente para a área de transferência sempre que você modificar um nome de comprador ou mudar o status de pagamento de um número.</p>
+    <h3 style="margin: 16px 0 14px 0;">Dados</h3>
+    <div style="margin-bottom:8px;">
+      <button class="yellow" onclick="exportJSON()" style="width:100%;margin-bottom:8px;">↓ Exportar dados</button>
+      <button class="primary" onclick="closeModal(); copyFormTemplate()" style="width:100%;">📋 Copiar template</button>
+    </div>
+  `;
+  openModal("⚙️ Ajustes", body);
 }
 function showSavedRaffles(){
   const body = `
