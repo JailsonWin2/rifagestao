@@ -675,7 +675,6 @@
         <button onclick="showSavedRaffles()">📁 Histórico</button>
         <button class="yellow" onclick="exportJSON()">↓ Export</button>
         <button class="red" onclick="resetCurrent()">Limpar</button>
-        <button onclick="showSettings()">⚙️ Ajustes</button>
       </div>
       <div class="top-clock" id="topClock">00:00:00</div>
     </div>
@@ -1339,33 +1338,6 @@ function showHistory(){
   const h=active().history;
   openModal("Histórico da rifa atual", h.length ? `<table><thead><tr><th>Data</th><th>Hora</th><th>Ação</th><th>Detalhe</th></tr></thead><tbody>${h.map(x=>`<tr><td>${x.date}</td><td>${x.time}</td><td>${escapeHtml(x.type)}</td><td>${escapeHtml(x.detail||"")}</td></tr>`).join("")}</tbody></table>` : `<p class="small">Sem histórico ainda.</p>`);
 }
-function showSettings(){
-  const body = `
-    <h3 style="margin: 0 0 14px 0;">Visibilidade</h3>
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-      <label class="switch">
-        <input type="checkbox" ${settings.showClock?"checked":""} onchange="updateSetting('showClock',this.checked)">
-        <span class="slider"></span>
-      </label>
-      <span style="font-size:13px;color:var(--txt-muted);">Mostrar relógio</span>
-    </div>
-    <h3 style="margin: 16px 0 14px 0;">Automação</h3>
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-      <label class="switch">
-        <input type="checkbox" ${settings.autoCopyOnChange?"checked":""} onchange="updateSetting('autoCopyOnChange',this.checked)">
-        <span class="slider"></span>
-      </label>
-      <span style="font-size:13px;color:var(--txt-muted);">Copiar automaticamente ao alterar nome ou pagamento</span>
-    </div>
-    <p class="small" style="color:var(--txt-dim);margin-bottom:12px;">Quando ativado, a mensagem será copiada automaticamente para a área de transferência sempre que você modificar um nome de comprador ou mudar o status de pagamento de um número.</p>
-    <h3 style="margin: 16px 0 14px 0;">Dados</h3>
-    <div style="margin-bottom:8px;">
-      <button class="yellow" onclick="exportJSON()" style="width:100%;margin-bottom:8px;">↓ Exportar dados</button>
-      <button class="primary" onclick="closeModal(); copyFormTemplate()" style="width:100%;">📋 Copiar template</button>
-    </div>
-  `;
-  openModal("⚙️ Ajustes", body);
-}
 function showSavedRaffles(){
   const body = `
     <div class="two">
@@ -1469,7 +1441,6 @@ function escapeHtml(s){ return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;"
 function escapeAttr(s){ return escapeHtml(s).replaceAll("\n"," "); }
 updateClock();
 setInterval(updateClock, 1000);
-applySettings();
 render();
 </script>
 </body>
