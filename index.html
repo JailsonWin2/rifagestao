@@ -643,7 +643,7 @@
 <dialog id="modal">
   <div class="modal-head">
     <strong id="modalTitle"></strong>
-    <div style="display:flex;align-items:center;gap:10px;">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
       <button id="modalConfigBtn" class="yellow" onclick="openResultTemplatesModal()" style="display:none">⚙️ Templates</button>
       <button id="modalCopyBtn" class="green" onclick="copyModalResult()" style="display:none">📋 Copiar</button>
       <button class="close" onclick="closeModal()">✕ Fechar</button>
@@ -799,6 +799,17 @@ function copyModalResult(){
   if(!msg){ toast("Nenhum resultado para copiar ⚠️"); return; }
   navigator.clipboard.writeText(msg);
   toast("Resultado copiado ✅");
+}
+
+function copyFormTemplate(){
+  const r = active();
+  const today = new Date();
+  const formattedDate = today.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+  const raffleNumber = current === 'rifaDaRifa' ? (r.numeroRifaReferencia || r.numeroRifa || '') : (r.numeroRifa || '');
+  const raffleType = current === 'vip2' ? 'VIP 2' : current === 'premium' ? 'Premium' : 'Rifa da Rifa';
+  const msg = `PREENCHA SEUS DADOS E O PRÊMIO.\nRESPONSÁVEL: 👉🏻 Jailson\nDATA: ${formattedDate}\nN. RIFA: ${raffleNumber} ${raffleType}\n\nPRODUTO:\nLADO DA MANIVELA:\n\nNOME:\nCPF: \nENDEREÇO:\nCIDADE: \nBAIRRO: \nESTADO: \nCEP:\nE-MAIL: \nTELEFONE: `;
+  navigator.clipboard.writeText(msg);
+  toast('Formulário copiado ✅');
 }
 
 function getDefaultResultTemplates(){
@@ -1119,9 +1130,9 @@ function showWinners(){
       <div><label>2º sorteado</label><input id="w2" type="number" min="1" max="${max}" value="${wn.w2||''}"></div>
       <div><label>3º sorteado</label><input id="w3" type="number" min="1" max="${max}" value="${wn.w3||''}"></div>
     </div>
-    <div class="actions"><button class="green" onclick="calculateWinners()">🏆 Gerar resultado</button></div>
+    <div class="actions"><button class="green" onclick="calculateWinners()">🏆 Gerar resultado</button><button class="yellow" onclick="copyFormTemplate()">COPIAR FORMULÁRIO</button></div>
     <div id="winnerResult" class="message-box" style="margin-top:14px;display:none"></div>
-  `, {config:true, copy:true});
+  `, {config:true, copy:true, form:true});
   // show previous result if exists
   if(active().lastWinnerMessage){
     setTimeout(()=>{ const el=document.getElementById("winnerResult"); if(el){ el.textContent=active().lastWinnerMessage; el.style.display="block"; } },50);
