@@ -7,12 +7,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
   <style>
-    html {
-      height: 100%;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      touch-action: pan-y;
-    }
     :root {
       --bg: #080c14;
       --surface: #0d1320;
@@ -69,12 +63,11 @@
       background: var(--bg);
       color: var(--txt);
       min-height: 100vh;
-      -webkit-overflow-scrolling: touch;
-      touch-action: pan-y;
+      overflow-x: hidden;
     }
 
     /* Background noise texture */
-    /* body::before {
+    body::before {
       content: '';
       position: fixed;
       inset: 0;
@@ -82,11 +75,10 @@
       pointer-events: none;
       z-index: 0;
       opacity: 0.6;
-      touch-action: pan-y;
-    } */
+    }
 
     /* Ambient glow */
-    /* body::after {
+    body::after {
       content: '';
       position: fixed;
       top: -200px;
@@ -97,8 +89,7 @@
       background: radial-gradient(ellipse, var(--ambient-glow) 0%, transparent 70%);
       pointer-events: none;
       z-index: 0;
-      touch-action: pan-y;
-    } */
+    }
 
     .app {
       max-width: 1300px;
@@ -106,7 +97,6 @@
       padding: 0 20px 40px;
       position: relative;
       z-index: 1;
-      touch-action: pan-y;
     }
 
     /* ── HEADER ── */
@@ -181,7 +171,6 @@
       background: transparent;
       transition: background 0.3s ease;
       z-index: 0;
-      touch-action: pan-y;
     }
     body.orange-alert .alert-overlay { background: rgba(255,140,0,0.12); }
     body.red-alert .alert-overlay { background: rgba(255,34,34,0.14); }
