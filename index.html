@@ -639,6 +639,27 @@
     .summary-card-value.orange { color: var(--accent); }
     .summary-card-value.dim { color: var(--txt-muted); }
 
+    /* ── BOTÃO FLUTUANTE (MOBILE) ── */
+    .floating-copy-btn {
+      display: none;
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 56px;
+      height: 56px;
+      background: var(--accent);
+      border: none;
+      border-radius: 10px;
+      font-size: 28px;
+      cursor: pointer;
+      z-index: 500;
+      box-shadow: 0 8px 24px var(--accent-glow);
+      transition: all 0.2s ease;
+      color: white;
+    }
+    .floating-copy-btn:active { transform: scale(0.95); }
+    .floating-copy-btn:hover { box-shadow: 0 12px 36px var(--accent-glow); }
+
     /* ── RESPONSIVE ── */
     @media (max-width: 900px) {
       .grid, .two { grid-template-columns: 1fr; }
@@ -650,6 +671,7 @@
       .desktop-copy { display: none; }
       .bulk-pay-control { margin-left: 0; width: 100%; justify-content: space-between; }
       th { position: static; }
+      .floating-copy-btn { display: flex; align-items: center; justify-content: center; }
     }
     @media (max-width: 520px) {
       .summary-row { grid-template-columns: 1fr 1fr; }
@@ -1443,5 +1465,6 @@ updateClock();
 setInterval(updateClock, 1000);
 render();
 </script>
+<button class="floating-copy-btn" onclick="copyMessage()" title="Copiar mensagem">📋</button>
 </body>
 </html>
